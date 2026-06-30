@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@notionhq/client": "^5.22.0",
+    "octokit": "^5.0.5"
+  }
+}

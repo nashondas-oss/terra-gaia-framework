@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "node_id": "master_orientation",
+    "external_id": "7c1b1f92-5b14-4dd8-a85b-d2a9ad7283b9",
+    "system": "notion",
+    "sync_status": "synced",
+    "last_sync": "2026-06-30T13:50:00Z"
+  },
+  {
+    "node_id": "angelic_houses_database",
+    "external_id": "255b698f-4e58-809c-862b-ff1185cc1d45",
+    "system": "notion",
+    "sync_status": "synced",
+    "last_sync": "2026-06-30T13:50:00Z"
+  },
+  {
+    "node_id": "terra_gaia_definitive_edition",
+    "external_id": "268b698f-4e58-801b-8b05-ee1d968a9492",
+    "system": "notion",
+    "sync_status": "synced",
+    "last_sync": "2026-06-30T13:50:00Z"
+  }
+]
