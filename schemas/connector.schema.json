@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "source_id": { "type": "string" },
+    "target_id": { "type": "string" },
+    "relationship_type": { "type": "string" },
+    "ratification_status": { "type": "string", "enum": ["provisional", "ratified"] }
+  },
+  "required": ["id", "source_id", "target_id", "relationship_type", "ratification_status"]
+}

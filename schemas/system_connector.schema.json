@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "node_id": { "type": "string" },
+    "external_id": { "type": "string" },
+    "system": { "type": "string" },
+    "sync_status": { "type": "string" }
+  },
+  "required": ["node_id", "external_id", "system"]
+}
