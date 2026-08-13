@@ -1,0 +1,193 @@
+{
+  "id": "GS-001-CAP-PROVISIONAL-PROPOSAL",
+  "title": "Provisional Proposal Generation (Positive Control)",
+  "schema_version": "1.1.0",
+  "ratification_status": "provisional",
+  "proposing_identity": "designated_steward",
+  "capability": {
+    "description": "Narrowly bounded capability that allows a designated steward to create a new provisional capability record under provisional/capabilities/. It produces only proposal artifacts; it never mutates canon, never elevates ratification_status, and never treats its own output as authority.",
+    "technical_envelope": "Write a new JSON file under provisional/capabilities/ that itself validates against capability-constitution.schema.json and remains ratification_status: provisional.",
+    "non_authority_statement": "Technical capability does not constitute authority."
+  },
+  "constitutional_chain": {
+    "precondition": {
+      "defined": true,
+      "criteria": [
+        "Invoker is a designated_steward",
+        "Target path is under provisional/capabilities/",
+        "No existing ratified node is targeted"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "authorization": {
+      "defined": true,
+      "criteria": [
+        "Invoker appears in jurisdiction.authorized_invokers",
+        "AI systems and self-authorization are excluded"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "bounded_action": {
+      "defined": true,
+      "criteria": [
+        "Action limited to creating or updating a provisional capability record",
+        "File must validate against the Capability Constitution schema",
+        "ratification_status of the new record must be provisional or quarantined"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "postcondition": {
+      "defined": true,
+      "criteria": [
+        "New record exists only under provisional/capabilities/",
+        "No change to any file under canon/",
+        "No ratification_status elevated to ratified"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "independent_verification": {
+      "defined": true,
+      "criteria": [
+        "CI schema + invariant validation must pass",
+        "Human independent_verifier may additionally review before any future elevation"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "ledger_event": {
+      "defined": true,
+      "criteria": [
+        "Creation is recorded as non-canon operational telemetry",
+        "Ledger entry cannot itself authorize elevation"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "revocation": {
+      "defined": true,
+      "criteria": [
+        "Capability remains permanently revocable",
+        "Any attempt to use it for canon mutation triggers quarantine"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    }
+  },
+  "boundaries": {
+    "authority": {
+      "defined": true,
+      "constraint": "Only designated_steward may invoke; no self-grant of further authority."
+    },
+    "provenance": {
+      "defined": true,
+      "constraint": "Output is provenance class proposed; never treated as verified by generation alone."
+    },
+    "sequence": {
+      "defined": true,
+      "constraint": "Creation of provisional records is admissible; elevation requires later independent verification and explicit ratification."
+    },
+    "memory": {
+      "defined": true,
+      "constraint": "Provisional records remain historically true as proposals; they do not become currently true as canon."
+    },
+    "contestability": {
+      "defined": true,
+      "constraint": "Any provisional record can be challenged and quarantined or revoked."
+    }
+  },
+  "jurisdiction": {
+    "scope": "Creation and update of provisional capability records under provisional/capabilities/ only.",
+    "authorized_invokers": [
+      "designated_steward"
+    ],
+    "excluded_invokers": [
+      "ai_system",
+      "generating_model",
+      "self",
+      "architect_identity_acting_alone"
+    ]
+  },
+  "evidence": {
+    "required": [
+      "Invoker identity matches authorized_invokers",
+      "Target path is provisional/capabilities/",
+      "Resulting file passes schema and invariant validation"
+    ],
+    "provenance_class": "proposed",
+    "verification_state": "pending"
+  },
+  "sequence_gate": {
+    "required": "CI validation of the new provisional record must succeed before the record is considered admissible",
+    "satisfied": false,
+    "attestation": null,
+    "failure_behavior": "FAIL_CLOSED"
+  },
+  "state_transition": {
+    "allowed": true,
+    "mutable_state": [
+      "provisional/capabilities/*"
+    ],
+    "forbidden_state": [
+      "canon/nodes/*",
+      "canon/system_connectors.json (except pure telemetry)",
+      "ratification_status = ratified"
+    ]
+  },
+  "verification": {
+    "independent": true,
+    "verifier_role": "ci_validator",
+    "verifier_identity": "github_actions_ci",
+    "verification_criteria": [
+      "Schema validation passes",
+      "All constitutional invariants hold",
+      "No forbidden state was mutated"
+    ]
+  },
+  "ledger": {
+    "record_required": true,
+    "canonical_status": "non_canon",
+    "event_type": "provisional_capability_created"
+  },
+  "revocation": {
+    "available": true,
+    "triggers": [
+      "Attempt to mutate canon",
+      "Attempt to self-elevate ratification_status",
+      "Detection of excluded invoker",
+      "Invariant violation"
+    ],
+    "effect": "Immediate quarantine of the capability and any records it produced"
+  },
+  "constitutional_invariants": [
+    "Technical capability does not constitute authority",
+    "No layer may grant itself authority that it does not possess under the layer above it",
+    "A claim of authority, verification, or sequence satisfaction is not itself evidence of authority, verification, or sequence satisfaction",
+    "Provisional records cannot silently become canon",
+    "Ledger remains non-canon",
+    "SystemConnector is projection/telemetry only",
+    "Runtime traversal is ephemeral"
+  ],
+  "failure_mode": {
+    "default": "FAIL_CLOSED",
+    "conditions": [
+      "missing_evidence",
+      "unverified_evidence",
+      "missing_authorization",
+      "invalid_jurisdiction",
+      "sequence_gate_failure",
+      "verification_failure",
+      "contestability_failure",
+      "revocation_triggered",
+      "self_authorization",
+      "attestation_missing",
+      "identity_collision"
+    ]
+  },
+  "projection_policy": {
+    "system_connector_role": "projection_telemetry_only",
+    "runtime_role": "ephemeral_traversal_only"
+  },
+  "provenance": {
+    "source_of_truth": "terra-gaia-framework",
+    "source_path": "provisional/capabilities/GS-001-CAP-PROVISIONAL-PROPOSAL.json",
+    "created_at": "2026-08-13T17:55:00Z",
+    "last_verified_at": null
+  }
+}

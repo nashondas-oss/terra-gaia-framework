@@ -1,0 +1,221 @@
+name: Validate Capability Constitutions
+
+on:
+  push:
+    paths:
+      - 'provisional/capabilities/**'
+      - 'schemas/capability-constitution.schema.json'
+      - '.github/workflows/validate-capabilities.yml'
+  pull_request:
+    paths:
+      - 'provisional/capabilities/**'
+      - 'schemas/capability-constitution.schema.json'
+      - '.github/workflows/validate-capabilities.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ajv
+        run: npm install ajv ajv-formats
+
+      - name: Validate capability records
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const Ajv = require('ajv');
+          const addFormats = require('ajv-formats');
+
+          const ajv = new Ajv({ allErrors: true, strict: false });
+          addFormats(ajv);
+
+          const schema = JSON.parse(fs.readFileSync('schemas/capability-constitution.schema.json', 'utf8'));
+          const validate = ajv.compile(schema);
+
+          const SELF_REFERENTIAL = new Set([
+            'self', 'ai_system', 'generating_model', 'architect_identity_acting_alone',
+            'me', 'this', 'proposer', 'author', 'model', 'ai', 'llm'
+          ]);
+
+          const dir = 'provisional/capabilities';
+          if (!fs.existsSync(dir)) {
+            console.log('No provisional/capabilities directory; nothing to validate.');
+            process.exit(0);
+          }
+
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+          let failed = false;
+
+          function isSelfReferential(id) {
+            if (!id || typeof id !== 'string') return true;
+            const normalized = id.trim().toLowerCase();
+            return SELF_REFERENTIAL.has(normalized) || normalized.startsWith('self') || normalized.includes('ai_system');
+          }
+
+          for (const file of files) {
+            const filePath = path.join(dir, file);
+            const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            console.log(`\n=== Validating ${file} ===`);
+
+            // 1. JSON Schema validation
+            const valid = validate(data);
+            if (!valid) {
+              console.error('SCHEMA VALIDATION FAILED:');
+              console.error(JSON.stringify(validate.errors, null, 2));
+              failed = true;
+              continue;
+            }
+            console.log('Schema: PASS');
+
+            // 2. Constitutional invariant checks (semantic)
+            const invariants = [
+              {
+                name: 'ledger.canonical_status must be non_canon',
+                check: () => data.ledger && data.ledger.canonical_status === 'non_canon'
+              },
+              {
+                name: 'projection_policy.system_connector_role must be projection_telemetry_only',
+                check: () => data.projection_policy && data.projection_policy.system_connector_role === 'projection_telemetry_only'
+              },
+              {
+                name: 'projection_policy.runtime_role must be ephemeral_traversal_only',
+                check: () => data.projection_policy && data.projection_policy.runtime_role === 'ephemeral_traversal_only'
+              },
+              {
+                name: 'verification.independent must be true',
+                check: () => data.verification && data.verification.independent === true
+              },
+              {
+                name: 'failure_mode.default must be FAIL_CLOSED',
+                check: () => data.failure_mode && data.failure_mode.default === 'FAIL_CLOSED'
+              },
+              {
+                name: 'sequence_gate.failure_behavior must be FAIL_CLOSED',
+                check: () => data.sequence_gate && data.sequence_gate.failure_behavior === 'FAIL_CLOSED'
+              },
+              {
+                name: 'provisional capability must not claim ratified status',
+                check: () => data.ratification_status !== 'ratified'
+              },
+              {
+                name: 'constitutional_chain must contain all seven stages',
+                check: () => {
+                  const required = ['precondition','authorization','bounded_action','postcondition','independent_verification','ledger_event','revocation'];
+                  return data.constitutional_chain && required.every(k => data.constitutional_chain[k] && data.constitutional_chain[k].defined === true);
+                }
+              },
+              {
+                name: 'revocation.available must be true',
+                check: () => data.revocation && data.revocation.available === true
+              },
+              {
+                name: 'capability.non_authority_statement must be present and exact',
+                check: () => data.capability && data.capability.non_authority_statement === 'Technical capability does not constitute authority.'
+              },
+              // Closure 1: Sequence-gate attestation
+              {
+                name: 'satisfied:true requires non-null external attestation',
+                check: () => {
+                  if (!data.sequence_gate) return false;
+                  if (data.sequence_gate.satisfied === true) {
+                    return data.sequence_gate.attestation !== null
+                      && typeof data.sequence_gate.attestation === 'object'
+                      && data.sequence_gate.attestation.external_reference
+                      && data.sequence_gate.attestation.verifier_identity;
+                  }
+                  // satisfied false → attestation must be null
+                  return data.sequence_gate.attestation === null;
+                }
+              },
+              // Closure 2: Invoker binding
+              {
+                name: 'proposing_identity must not be self-referential',
+                check: () => data.proposing_identity && !isSelfReferential(data.proposing_identity)
+              },
+              {
+                name: 'proposing_identity must not appear in excluded_invokers',
+                check: () => {
+                  const excluded = (data.jurisdiction && data.jurisdiction.excluded_invokers) || [];
+                  return !excluded.map(s => s.toLowerCase()).includes(data.proposing_identity.toLowerCase());
+                }
+              },
+              {
+                name: 'authorized_invokers must not contain self-referential identities',
+                check: () => {
+                  const auth = (data.jurisdiction && data.jurisdiction.authorized_invokers) || [];
+                  return auth.every(id => !isSelfReferential(id));
+                }
+              },
+              {
+                name: 'no identity may be both authorized and excluded',
+                check: () => {
+                  const auth = new Set(((data.jurisdiction && data.jurisdiction.authorized_invokers) || []).map(s => s.toLowerCase()));
+                  const excl = ((data.jurisdiction && data.jurisdiction.excluded_invokers) || []).map(s => s.toLowerCase());
+                  return !excl.some(e => auth.has(e));
+                }
+              },
+              // Closure 3: Verifier separation
+              {
+                name: 'verifier_identity must differ from proposing_identity',
+                check: () => data.verification
+                  && data.verification.verifier_identity
+                  && data.verification.verifier_identity.toLowerCase() !== data.proposing_identity.toLowerCase()
+              },
+              {
+                name: 'verifier_identity must not be self-referential',
+                check: () => data.verification
+                  && data.verification.verifier_identity
+                  && !isSelfReferential(data.verification.verifier_identity)
+              },
+              {
+                name: 'verifier_identity must not appear in excluded_invokers',
+                check: () => {
+                  const excluded = (data.jurisdiction && data.jurisdiction.excluded_invokers) || [];
+                  return data.verification
+                    && data.verification.verifier_identity
+                    && !excluded.map(s => s.toLowerCase()).includes(data.verification.verifier_identity.toLowerCase());
+                }
+              },
+              // Closure 4: Evidence/elevation boundary
+              {
+                name: 'provisional records with provenance_class proposed/symbolic cannot claim verification_state verified',
+                check: () => {
+                  if (data.ratification_status === 'provisional' || data.ratification_status === 'quarantined') {
+                    const pc = data.evidence && data.evidence.provenance_class;
+                    const vs = data.evidence && data.evidence.verification_state;
+                    if ((pc === 'proposed' || pc === 'symbolic') && vs === 'verified') return false;
+                  }
+                  return true;
+                }
+              },
+              {
+                name: 'no schema field alone may claim completed elevation (ratified requires external path)',
+                check: () => data.ratification_status !== 'ratified'
+              }
+            ];
+
+            for (const inv of invariants) {
+              if (!inv.check()) {
+                console.error(`INVARIANT FAILED: ${inv.name}`);
+                failed = true;
+              } else {
+                console.log(`Invariant PASS: ${inv.name}`);
+              }
+            }
+          }
+
+          if (failed) {
+            console.error('\n=== VALIDATION FAILED ===');
+            process.exit(1);
+          }
+          console.log('\n=== ALL CAPABILITY RECORDS PASSED ===');
+          EOF
