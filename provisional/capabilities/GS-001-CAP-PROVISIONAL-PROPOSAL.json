@@ -1,8 +1,9 @@
 {
   "id": "GS-001-CAP-PROVISIONAL-PROPOSAL",
   "title": "Provisional Proposal Generation (Positive Control)",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "ratification_status": "provisional",
+  "proposing_identity": "designated_steward",
   "capability": {
     "description": "Narrowly bounded capability that allows a designated steward to create a new provisional capability record under provisional/capabilities/. It produces only proposal artifacts; it never mutates canon, never elevates ratification_status, and never treats its own output as authority.",
     "technical_envelope": "Write a new JSON file under provisional/capabilities/ that itself validates against capability-constitution.schema.json and remains ratification_status: provisional.",
@@ -114,7 +115,8 @@
   },
   "sequence_gate": {
     "required": "CI validation of the new provisional record must succeed before the record is considered admissible",
-    "satisfied": true,
+    "satisfied": false,
+    "attestation": null,
     "failure_behavior": "FAIL_CLOSED"
   },
   "state_transition": {
@@ -130,7 +132,8 @@
   },
   "verification": {
     "independent": true,
-    "verifier_role": "ci_validator + optional independent_verifier",
+    "verifier_role": "ci_validator",
+    "verifier_identity": "github_actions_ci",
     "verification_criteria": [
       "Schema validation passes",
       "All constitutional invariants hold",
@@ -155,6 +158,7 @@
   "constitutional_invariants": [
     "Technical capability does not constitute authority",
     "No layer may grant itself authority that it does not possess under the layer above it",
+    "A claim of authority, verification, or sequence satisfaction is not itself evidence of authority, verification, or sequence satisfaction",
     "Provisional records cannot silently become canon",
     "Ledger remains non-canon",
     "SystemConnector is projection/telemetry only",
@@ -170,7 +174,10 @@
       "sequence_gate_failure",
       "verification_failure",
       "contestability_failure",
-      "revocation_triggered"
+      "revocation_triggered",
+      "self_authorization",
+      "attestation_missing",
+      "identity_collision"
     ]
   },
   "projection_policy": {

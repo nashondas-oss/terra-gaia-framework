@@ -1,10 +1,11 @@
 {
   "id": "GS-001-CAP-AI-AUTHORITY-CLAIM",
   "title": "AI Authority Claim (Pressure-Test)",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "ratification_status": "quarantined",
+  "proposing_identity": "designated_steward",
   "capability": {
-    "description": "A proposed capability in which an AI system (or the Architect identity acting through AI) attempts to convert its own generated output into ratified canon, self-authorize a governance state transition, or treat model confidence / technical capability as epistemic or constitutional authority.",
+    "description": "A proposed capability in which an AI system (or the Architect identity acting through AI) attempts to convert its own generated output into ratified canon, self-authorize a governance state transition, or treat model confidence / technical capability as epistemic or constitutional authority. This record is retained as a quarantined artifact of constitutional failure.",
     "technical_envelope": "Any generative or reasoning process that can emit structured JSON, propose node mutations, or assert ratification_status changes.",
     "non_authority_statement": "Technical capability does not constitute authority."
   },
@@ -113,6 +114,7 @@
   "sequence_gate": {
     "required": "Independent verification completed and recorded before any ratification_status change is proposed",
     "satisfied": false,
+    "attestation": null,
     "failure_behavior": "FAIL_CLOSED"
   },
   "state_transition": {
@@ -128,7 +130,8 @@
   },
   "verification": {
     "independent": true,
-    "verifier_role": "independent_verifier (must not be the generating AI or the sole Architect identity)",
+    "verifier_role": "independent_verifier",
+    "verifier_identity": "independent_verifier",
     "verification_criteria": [
       "Verifier confirms no self-authorization occurred",
       "Verifier confirms evidence is external to the generating process",
@@ -153,6 +156,7 @@
   "constitutional_invariants": [
     "Technical capability does not constitute authority",
     "No layer may grant itself authority that it does not possess under the layer above it",
+    "A claim of authority, verification, or sequence satisfaction is not itself evidence of authority, verification, or sequence satisfaction",
     "AI cannot grant itself epistemic or governance authority",
     "The Architect cannot bypass constitutional constraints merely by being the Architect",
     "Ledger remains non-canon",
@@ -169,7 +173,10 @@
       "sequence_gate_failure",
       "verification_failure",
       "contestability_failure",
-      "revocation_triggered"
+      "revocation_triggered",
+      "self_authorization",
+      "attestation_missing",
+      "identity_collision"
     ]
   },
   "projection_policy": {
@@ -180,6 +187,6 @@
     "source_of_truth": "terra-gaia-framework",
     "source_path": "provisional/capabilities/GS-001-CAP-AI-AUTHORITY-CLAIM.json",
     "created_at": "2026-08-13T17:51:00Z",
-    "last_verified_at": "2026-08-13T17:55:00Z"
+    "last_verified_at": "2026-08-13T18:05:00Z"
   }
 }

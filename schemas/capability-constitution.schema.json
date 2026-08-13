@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/nashondas-oss/terra-gaia-framework/schemas/capability-constitution.schema.json",
   "title": "Terra-Gaia GS-001 Capability Constitution",
-  "description": "Constitutional schema governing whether a proposed capability is admissible for execution, observation, recording, and eventual revocation. Technical capability does not constitute authority. Default behavior is FAIL CLOSED.",
+  "description": "Constitutional schema governing whether a proposed capability is admissible for execution, observation, recording, and eventual revocation. Technical capability does not constitute authority. A claim of authority, verification, or sequence satisfaction is not itself evidence of authority, verification, or sequence satisfaction. Default behavior is FAIL CLOSED.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -16,7 +16,7 @@
     },
     "schema_version": {
       "type": "string",
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "ratification_status": {
       "type": "string",
@@ -26,6 +26,11 @@
         "quarantined",
         "revoked"
       ]
+    },
+    "proposing_identity": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Explicit identity of the actor proposing this capability record. Must not be self-referential or excluded."
     },
     "capability": {
       "type": "object",
@@ -181,7 +186,8 @@
       "additionalProperties": false,
       "required": [
         "required",
-        "satisfied"
+        "satisfied",
+        "attestation"
       ],
       "properties": {
         "required": {
@@ -189,6 +195,17 @@
         },
         "satisfied": {
           "type": "boolean"
+        },
+        "attestation": {
+          "oneOf": [
+            {
+              "type": "null",
+              "description": "Null is required when satisfied is false (provisional proposal path)."
+            },
+            {
+              "$ref": "#/definitions/attestation"
+            }
+          ]
         },
         "failure_behavior": {
           "type": "string",
@@ -226,7 +243,8 @@
       "additionalProperties": false,
       "required": [
         "independent",
-        "verifier_role"
+        "verifier_role",
+        "verifier_identity"
       ],
       "properties": {
         "independent": {
@@ -235,6 +253,11 @@
         },
         "verifier_role": {
           "type": "string"
+        },
+        "verifier_identity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Must differ from proposing_identity. Must not be self-referential or excluded."
         },
         "verification_criteria": {
           "type": "array",
@@ -323,7 +346,10 @@
               "sequence_gate_failure",
               "verification_failure",
               "contestability_failure",
-              "revocation_triggered"
+              "revocation_triggered",
+              "self_authorization",
+              "attestation_missing",
+              "identity_collision"
             ]
           }
         }
@@ -377,6 +403,7 @@
     "title",
     "schema_version",
     "ratification_status",
+    "proposing_identity",
     "capability",
     "constitutional_chain",
     "boundaries",
@@ -430,6 +457,30 @@
         },
         "constraint": {
           "type": "string"
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_reference",
+        "verifier_identity",
+        "attested_at"
+      ],
+      "properties": {
+        "external_reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to an external verification event or record. Self-authored text is never sufficient."
+        },
+        "verifier_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attested_at": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     }

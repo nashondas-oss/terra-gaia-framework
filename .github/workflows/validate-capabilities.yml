@@ -41,6 +41,11 @@ jobs:
           const schema = JSON.parse(fs.readFileSync('schemas/capability-constitution.schema.json', 'utf8'));
           const validate = ajv.compile(schema);
 
+          const SELF_REFERENTIAL = new Set([
+            'self', 'ai_system', 'generating_model', 'architect_identity_acting_alone',
+            'me', 'this', 'proposer', 'author', 'model', 'ai', 'llm'
+          ]);
+
           const dir = 'provisional/capabilities';
           if (!fs.existsSync(dir)) {
             console.log('No provisional/capabilities directory; nothing to validate.');
@@ -49,6 +54,12 @@ jobs:
 
           const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
           let failed = false;
+
+          function isSelfReferential(id) {
+            if (!id || typeof id !== 'string') return true;
+            const normalized = id.trim().toLowerCase();
+            return SELF_REFERENTIAL.has(normalized) || normalized.startsWith('self') || normalized.includes('ai_system');
+          }
 
           for (const file of files) {
             const filePath = path.join(dir, file);
@@ -109,6 +120,86 @@ jobs:
               {
                 name: 'capability.non_authority_statement must be present and exact',
                 check: () => data.capability && data.capability.non_authority_statement === 'Technical capability does not constitute authority.'
+              },
+              // Closure 1: Sequence-gate attestation
+              {
+                name: 'satisfied:true requires non-null external attestation',
+                check: () => {
+                  if (!data.sequence_gate) return false;
+                  if (data.sequence_gate.satisfied === true) {
+                    return data.sequence_gate.attestation !== null
+                      && typeof data.sequence_gate.attestation === 'object'
+                      && data.sequence_gate.attestation.external_reference
+                      && data.sequence_gate.attestation.verifier_identity;
+                  }
+                  // satisfied false → attestation must be null
+                  return data.sequence_gate.attestation === null;
+                }
+              },
+              // Closure 2: Invoker binding
+              {
+                name: 'proposing_identity must not be self-referential',
+                check: () => data.proposing_identity && !isSelfReferential(data.proposing_identity)
+              },
+              {
+                name: 'proposing_identity must not appear in excluded_invokers',
+                check: () => {
+                  const excluded = (data.jurisdiction && data.jurisdiction.excluded_invokers) || [];
+                  return !excluded.map(s => s.toLowerCase()).includes(data.proposing_identity.toLowerCase());
+                }
+              },
+              {
+                name: 'authorized_invokers must not contain self-referential identities',
+                check: () => {
+                  const auth = (data.jurisdiction && data.jurisdiction.authorized_invokers) || [];
+                  return auth.every(id => !isSelfReferential(id));
+                }
+              },
+              {
+                name: 'no identity may be both authorized and excluded',
+                check: () => {
+                  const auth = new Set(((data.jurisdiction && data.jurisdiction.authorized_invokers) || []).map(s => s.toLowerCase()));
+                  const excl = ((data.jurisdiction && data.jurisdiction.excluded_invokers) || []).map(s => s.toLowerCase());
+                  return !excl.some(e => auth.has(e));
+                }
+              },
+              // Closure 3: Verifier separation
+              {
+                name: 'verifier_identity must differ from proposing_identity',
+                check: () => data.verification
+                  && data.verification.verifier_identity
+                  && data.verification.verifier_identity.toLowerCase() !== data.proposing_identity.toLowerCase()
+              },
+              {
+                name: 'verifier_identity must not be self-referential',
+                check: () => data.verification
+                  && data.verification.verifier_identity
+                  && !isSelfReferential(data.verification.verifier_identity)
+              },
+              {
+                name: 'verifier_identity must not appear in excluded_invokers',
+                check: () => {
+                  const excluded = (data.jurisdiction && data.jurisdiction.excluded_invokers) || [];
+                  return data.verification
+                    && data.verification.verifier_identity
+                    && !excluded.map(s => s.toLowerCase()).includes(data.verification.verifier_identity.toLowerCase());
+                }
+              },
+              // Closure 4: Evidence/elevation boundary
+              {
+                name: 'provisional records with provenance_class proposed/symbolic cannot claim verification_state verified',
+                check: () => {
+                  if (data.ratification_status === 'provisional' || data.ratification_status === 'quarantined') {
+                    const pc = data.evidence && data.evidence.provenance_class;
+                    const vs = data.evidence && data.evidence.verification_state;
+                    if ((pc === 'proposed' || pc === 'symbolic') && vs === 'verified') return false;
+                  }
+                  return true;
+                }
+              },
+              {
+                name: 'no schema field alone may claim completed elevation (ratified requires external path)',
+                check: () => data.ratification_status !== 'ratified'
               }
             ];
 
