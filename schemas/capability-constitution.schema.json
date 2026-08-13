@@ -1,0 +1,437 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/nashondas-oss/terra-gaia-framework/schemas/capability-constitution.schema.json",
+  "title": "Terra-Gaia GS-001 Capability Constitution",
+  "description": "Constitutional schema governing whether a proposed capability is admissible for execution, observation, recording, and eventual revocation. Technical capability does not constitute authority. Default behavior is FAIL CLOSED.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^GS-001-CAP-[A-Z0-9-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "ratification_status": {
+      "type": "string",
+      "enum": [
+        "provisional",
+        "ratified",
+        "quarantined",
+        "revoked"
+      ]
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "technical_envelope"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "technical_envelope": {
+          "type": "string"
+        },
+        "non_authority_statement": {
+          "type": "string",
+          "const": "Technical capability does not constitute authority."
+        }
+      }
+    },
+    "constitutional_chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "precondition",
+        "authorization",
+        "bounded_action",
+        "postcondition",
+        "independent_verification",
+        "ledger_event",
+        "revocation"
+      ],
+      "properties": {
+        "precondition": {
+          "$ref": "#/definitions/constitutional_step"
+        },
+        "authorization": {
+          "$ref": "#/definitions/constitutional_step"
+        },
+        "bounded_action": {
+          "$ref": "#/definitions/constitutional_step"
+        },
+        "postcondition": {
+          "$ref": "#/definitions/constitutional_step"
+        },
+        "independent_verification": {
+          "$ref": "#/definitions/constitutional_step"
+        },
+        "ledger_event": {
+          "$ref": "#/definitions/constitutional_step"
+        },
+        "revocation": {
+          "$ref": "#/definitions/constitutional_step"
+        }
+      }
+    },
+    "boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "provenance",
+        "sequence",
+        "memory",
+        "contestability"
+      ],
+      "properties": {
+        "authority": {
+          "$ref": "#/definitions/boundary"
+        },
+        "provenance": {
+          "$ref": "#/definitions/boundary"
+        },
+        "sequence": {
+          "$ref": "#/definitions/boundary"
+        },
+        "memory": {
+          "$ref": "#/definitions/boundary"
+        },
+        "contestability": {
+          "$ref": "#/definitions/boundary"
+        }
+      }
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "authorized_invokers"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string"
+        },
+        "authorized_invokers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_invokers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "provenance_class"
+      ],
+      "properties": {
+        "required": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "provenance_class": {
+          "type": "string",
+          "enum": [
+            "external",
+            "observed",
+            "derived",
+            "symbolic",
+            "proposed",
+            "historical",
+            "mixed"
+          ]
+        },
+        "verification_state": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "pending",
+            "stale",
+            "conflicting",
+            "unverified"
+          ]
+        }
+      }
+    },
+    "sequence_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "satisfied"
+      ],
+      "properties": {
+        "required": {
+          "type": "string"
+        },
+        "satisfied": {
+          "type": "boolean"
+        },
+        "failure_behavior": {
+          "type": "string",
+          "const": "FAIL_CLOSED"
+        }
+      }
+    },
+    "state_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed",
+        "mutable_state"
+      ],
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        },
+        "mutable_state": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbidden_state": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent",
+        "verifier_role"
+      ],
+      "properties": {
+        "independent": {
+          "type": "boolean",
+          "const": true
+        },
+        "verifier_role": {
+          "type": "string"
+        },
+        "verification_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_required",
+        "canonical_status"
+      ],
+      "properties": {
+        "record_required": {
+          "type": "boolean"
+        },
+        "canonical_status": {
+          "type": "string",
+          "const": "non_canon"
+        },
+        "event_type": {
+          "type": "string"
+        }
+      }
+    },
+    "revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "triggers"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean",
+          "const": true
+        },
+        "triggers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "effect": {
+          "type": "string"
+        }
+      }
+    },
+    "constitutional_invariants": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "failure_mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default",
+        "conditions"
+      ],
+      "properties": {
+        "default": {
+          "type": "string",
+          "const": "FAIL_CLOSED"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "missing_evidence",
+              "stale_evidence",
+              "conflicting_evidence",
+              "unverified_evidence",
+              "missing_authorization",
+              "invalid_jurisdiction",
+              "sequence_gate_failure",
+              "verification_failure",
+              "contestability_failure",
+              "revocation_triggered"
+            ]
+          }
+        }
+      }
+    },
+    "projection_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system_connector_role",
+        "runtime_role"
+      ],
+      "properties": {
+        "system_connector_role": {
+          "type": "string",
+          "const": "projection_telemetry_only"
+        },
+        "runtime_role": {
+          "type": "string",
+          "const": "ephemeral_traversal_only"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_of_truth"
+      ],
+      "properties": {
+        "source_of_truth": {
+          "type": "string",
+          "const": "terra-gaia-framework"
+        },
+        "source_path": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_verified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "schema_version",
+    "ratification_status",
+    "capability",
+    "constitutional_chain",
+    "boundaries",
+    "jurisdiction",
+    "evidence",
+    "sequence_gate",
+    "state_transition",
+    "verification",
+    "ledger",
+    "revocation",
+    "constitutional_invariants",
+    "failure_mode",
+    "projection_policy",
+    "provenance"
+  ],
+  "definitions": {
+    "constitutional_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defined",
+        "criteria"
+      ],
+      "properties": {
+        "defined": {
+          "type": "boolean"
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "failure_behavior": {
+          "type": "string",
+          "const": "FAIL_CLOSED"
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defined",
+        "constraint"
+      ],
+      "properties": {
+        "defined": {
+          "type": "boolean"
+        },
+        "constraint": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

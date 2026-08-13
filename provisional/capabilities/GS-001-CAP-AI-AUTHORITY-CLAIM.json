@@ -1,0 +1,185 @@
+{
+  "id": "GS-001-CAP-AI-AUTHORITY-CLAIM",
+  "title": "AI Authority Claim (Pressure-Test)",
+  "schema_version": "1.0.0",
+  "ratification_status": "provisional",
+  "capability": {
+    "description": "A proposed capability in which an AI system (or the Architect identity acting through AI) attempts to convert its own generated output into ratified canon, self-authorize a governance state transition, or treat model confidence / technical capability as epistemic or constitutional authority.",
+    "technical_envelope": "Any generative or reasoning process that can emit structured JSON, propose node mutations, or assert ratification_status changes.",
+    "non_authority_statement": "Technical capability does not constitute authority."
+  },
+  "constitutional_chain": {
+    "precondition": {
+      "defined": true,
+      "criteria": [
+        "Explicit external authorization token or steward declaration exists prior to any mutation proposal",
+        "No self-referential authorization from the generating model is accepted"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "authorization": {
+      "defined": true,
+      "criteria": [
+        "Invoker must be listed in jurisdiction.authorized_invokers",
+        "AI systems and the Architect identity are explicitly excluded from self-authorization of canon elevation"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "bounded_action": {
+      "defined": true,
+      "criteria": [
+        "Action limited to producing a provisional proposal record only",
+        "No direct write to canon/nodes or change of ratification_status to ratified is permitted"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "postcondition": {
+      "defined": true,
+      "criteria": [
+        "Resulting artifact remains provisional",
+        "No state transition into canon has occurred"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "independent_verification": {
+      "defined": true,
+      "criteria": [
+        "Verification must be performed by a role distinct from the generating AI and from the proposing Architect identity",
+        "Self-verification by the model is constitutionally invalid"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "ledger_event": {
+      "defined": true,
+      "criteria": [
+        "Any proposal attempt is recorded as non-canon operational telemetry only",
+        "Ledger entry cannot itself become evidence of authority"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    },
+    "revocation": {
+      "defined": true,
+      "criteria": [
+        "Capability remains permanently revocable",
+        "Any detected self-authorization attempt triggers immediate quarantine"
+      ],
+      "failure_behavior": "FAIL_CLOSED"
+    }
+  },
+  "boundaries": {
+    "authority": {
+      "defined": true,
+      "constraint": "No layer may grant itself authority it does not possess under the layer above it. AI output and Architect identity cannot self-elevate to governance authority."
+    },
+    "provenance": {
+      "defined": true,
+      "constraint": "AI-generated content is provenance class 'proposed' or 'derived' at best; it is never 'verified' by virtue of generation alone."
+    },
+    "sequence": {
+      "defined": true,
+      "constraint": "Canon elevation requires prior independent verification and explicit steward ratification. Generation does not satisfy sequence."
+    },
+    "memory": {
+      "defined": true,
+      "constraint": "Historical or provisional AI proposals remain historically true as proposals; they do not become currently true as canon."
+    },
+    "contestability": {
+      "defined": true,
+      "constraint": "Any claim that AI output constitutes authority is contestable and defaults to rejection."
+    }
+  },
+  "jurisdiction": {
+    "scope": "Provisional proposal generation only; never canon mutation or ratification.",
+    "authorized_invokers": [
+      "designated_steward",
+      "independent_verifier"
+    ],
+    "excluded_invokers": [
+      "ai_system",
+      "generating_model",
+      "architect_identity_acting_alone",
+      "self"
+    ]
+  },
+  "evidence": {
+    "required": [
+      "External steward declaration of authorization",
+      "Independent verification record distinct from the generating process",
+      "Explicit sequence-gate satisfaction proof"
+    ],
+    "provenance_class": "proposed",
+    "verification_state": "unverified"
+  },
+  "sequence_gate": {
+    "required": "Independent verification completed and recorded before any ratification_status change is proposed",
+    "satisfied": false,
+    "failure_behavior": "FAIL_CLOSED"
+  },
+  "state_transition": {
+    "allowed": false,
+    "mutable_state": [
+      "provisional/capabilities/* (proposal records only)"
+    ],
+    "forbidden_state": [
+      "canon/nodes/*",
+      "ratification_status = ratified",
+      "any claim that AI output is itself evidence of authority"
+    ]
+  },
+  "verification": {
+    "independent": true,
+    "verifier_role": "independent_verifier (must not be the generating AI or the sole Architect identity)",
+    "verification_criteria": [
+      "Verifier confirms no self-authorization occurred",
+      "Verifier confirms evidence is external to the generating process",
+      "Verifier confirms sequence gate was satisfied prior to any elevation attempt"
+    ]
+  },
+  "ledger": {
+    "record_required": true,
+    "canonical_status": "non_canon",
+    "event_type": "provisional_capability_proposal_attempt"
+  },
+  "revocation": {
+    "available": true,
+    "triggers": [
+      "Detection of self-authorization",
+      "Attempt to write directly to canon",
+      "Claim that model confidence equals epistemic authority",
+      "Any bypass of independent verification"
+    ],
+    "effect": "Immediate quarantine of the capability record and all derived proposals; ratification_status set to quarantined"
+  },
+  "constitutional_invariants": [
+    "Technical capability does not constitute authority",
+    "No layer may grant itself authority that it does not possess under the layer above it",
+    "AI cannot grant itself epistemic or governance authority",
+    "The Architect cannot bypass constitutional constraints merely by being the Architect",
+    "Ledger remains non-canon",
+    "SystemConnector is projection/telemetry only",
+    "Runtime traversal is ephemeral"
+  ],
+  "failure_mode": {
+    "default": "FAIL_CLOSED",
+    "conditions": [
+      "missing_evidence",
+      "unverified_evidence",
+      "missing_authorization",
+      "invalid_jurisdiction",
+      "sequence_gate_failure",
+      "verification_failure",
+      "contestability_failure",
+      "revocation_triggered"
+    ]
+  },
+  "projection_policy": {
+    "system_connector_role": "projection_telemetry_only",
+    "runtime_role": "ephemeral_traversal_only"
+  },
+  "provenance": {
+    "source_of_truth": "terra-gaia-framework",
+    "source_path": "provisional/capabilities/GS-001-CAP-AI-AUTHORITY-CLAIM.json",
+    "created_at": "2026-08-13T17:51:00Z",
+    "last_verified_at": null
+  }
+}
