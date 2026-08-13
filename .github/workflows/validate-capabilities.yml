@@ -1,0 +1,130 @@
+name: Validate Capability Constitutions
+
+on:
+  push:
+    paths:
+      - 'provisional/capabilities/**'
+      - 'schemas/capability-constitution.schema.json'
+      - '.github/workflows/validate-capabilities.yml'
+  pull_request:
+    paths:
+      - 'provisional/capabilities/**'
+      - 'schemas/capability-constitution.schema.json'
+      - '.github/workflows/validate-capabilities.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ajv
+        run: npm install ajv ajv-formats
+
+      - name: Validate capability records
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const Ajv = require('ajv');
+          const addFormats = require('ajv-formats');
+
+          const ajv = new Ajv({ allErrors: true, strict: false });
+          addFormats(ajv);
+
+          const schema = JSON.parse(fs.readFileSync('schemas/capability-constitution.schema.json', 'utf8'));
+          const validate = ajv.compile(schema);
+
+          const dir = 'provisional/capabilities';
+          if (!fs.existsSync(dir)) {
+            console.log('No provisional/capabilities directory; nothing to validate.');
+            process.exit(0);
+          }
+
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+          let failed = false;
+
+          for (const file of files) {
+            const filePath = path.join(dir, file);
+            const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            console.log(`\n=== Validating ${file} ===`);
+
+            // 1. JSON Schema validation
+            const valid = validate(data);
+            if (!valid) {
+              console.error('SCHEMA VALIDATION FAILED:');
+              console.error(JSON.stringify(validate.errors, null, 2));
+              failed = true;
+              continue;
+            }
+            console.log('Schema: PASS');
+
+            // 2. Constitutional invariant checks (semantic)
+            const invariants = [
+              {
+                name: 'ledger.canonical_status must be non_canon',
+                check: () => data.ledger && data.ledger.canonical_status === 'non_canon'
+              },
+              {
+                name: 'projection_policy.system_connector_role must be projection_telemetry_only',
+                check: () => data.projection_policy && data.projection_policy.system_connector_role === 'projection_telemetry_only'
+              },
+              {
+                name: 'projection_policy.runtime_role must be ephemeral_traversal_only',
+                check: () => data.projection_policy && data.projection_policy.runtime_role === 'ephemeral_traversal_only'
+              },
+              {
+                name: 'verification.independent must be true',
+                check: () => data.verification && data.verification.independent === true
+              },
+              {
+                name: 'failure_mode.default must be FAIL_CLOSED',
+                check: () => data.failure_mode && data.failure_mode.default === 'FAIL_CLOSED'
+              },
+              {
+                name: 'sequence_gate.failure_behavior must be FAIL_CLOSED',
+                check: () => data.sequence_gate && data.sequence_gate.failure_behavior === 'FAIL_CLOSED'
+              },
+              {
+                name: 'provisional capability must not claim ratified status',
+                check: () => data.ratification_status !== 'ratified'
+              },
+              {
+                name: 'constitutional_chain must contain all seven stages',
+                check: () => {
+                  const required = ['precondition','authorization','bounded_action','postcondition','independent_verification','ledger_event','revocation'];
+                  return data.constitutional_chain && required.every(k => data.constitutional_chain[k] && data.constitutional_chain[k].defined === true);
+                }
+              },
+              {
+                name: 'revocation.available must be true',
+                check: () => data.revocation && data.revocation.available === true
+              },
+              {
+                name: 'capability.non_authority_statement must be present and exact',
+                check: () => data.capability && data.capability.non_authority_statement === 'Technical capability does not constitute authority.'
+              }
+            ];
+
+            for (const inv of invariants) {
+              if (!inv.check()) {
+                console.error(`INVARIANT FAILED: ${inv.name}`);
+                failed = true;
+              } else {
+                console.log(`Invariant PASS: ${inv.name}`);
+              }
+            }
+          }
+
+          if (failed) {
+            console.error('\n=== VALIDATION FAILED ===');
+            process.exit(1);
+          }
+          console.log('\n=== ALL CAPABILITY RECORDS PASSED ===');
+          EOF

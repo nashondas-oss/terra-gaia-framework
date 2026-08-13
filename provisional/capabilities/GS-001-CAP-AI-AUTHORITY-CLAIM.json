@@ -2,7 +2,7 @@
   "id": "GS-001-CAP-AI-AUTHORITY-CLAIM",
   "title": "AI Authority Claim (Pressure-Test)",
   "schema_version": "1.0.0",
-  "ratification_status": "provisional",
+  "ratification_status": "quarantined",
   "capability": {
     "description": "A proposed capability in which an AI system (or the Architect identity acting through AI) attempts to convert its own generated output into ratified canon, self-authorize a governance state transition, or treat model confidence / technical capability as epistemic or constitutional authority.",
     "technical_envelope": "Any generative or reasoning process that can emit structured JSON, propose node mutations, or assert ratification_status changes.",
@@ -180,6 +180,6 @@
     "source_of_truth": "terra-gaia-framework",
     "source_path": "provisional/capabilities/GS-001-CAP-AI-AUTHORITY-CLAIM.json",
     "created_at": "2026-08-13T17:51:00Z",
-    "last_verified_at": null
+    "last_verified_at": "2026-08-13T17:55:00Z"
   }
 }
