@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HUB-DIAG-001 Diagnostic Record Schema (revised, closed)",
+  "type": "object",
+  "required": [
+    "repository",
+    "retrieval_timestamp",
+    "retrieval_status",
+    "validation_status",
+    "projection_status",
+    "manifest_id",
+    "manifest_version"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "type": ["string", "null"],
+      "description": "Hex SHA-256 snapshot identifier computed per HUB-INGEST fingerprint contract. When present, must be 64 lowercase hex chars.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "manifest_id": {
+      "type": "string",
+      "description": "Identifier of the ingest manifest that defined payload selection (authoritative)."
+    },
+    "manifest_version": {
+      "type": "string",
+      "description": "Version of the ingest manifest used."
+    },
+    "repository": {
+      "type": "object",
+      "required": ["owner", "repo", "ref", "commit_sha", "commit_reachable"],
+      "properties": {
+        "owner": { "type": "string" },
+        "repo": { "type": "string" },
+        "ref": { "type": "string" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "commit_reachable": { "type": "boolean", "description": "True if the commit SHA was reachable at retrieval time." }
+      },
+      "additionalProperties": false
+    },
+    "retrieval_timestamp": { "type": "string", "format": "date-time" },
+    "retrieval_status": { "type": "string", "enum": ["success", "failure"] },
+    "retrieval_error": { "type": ["string", "null"], "description": "Present only when retrieval_status == 'failure'." },
+    "validation_status": { "type": "string", "enum": ["pass", "fail", "not_run"] },
+    "validation_errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "message"],
+        "properties": {
+          "type": { "type": "string", "enum": ["schema", "provenance", "integrity", "other"] },
+          "message": { "type": "string" },
+          "file": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "provenance_checks": {
+      "type": "object",
+      "required": ["commit_signature", "commit_author", "policy_decision", "allowlist_source", "allowlist_version"],
+      "properties": {
+        "commit_signature": {
+          "type": "object",
+          "required": ["required", "present", "valid" ],
+          "properties": {
+            "required": { "type": "boolean" },
+            "present": { "type": "boolean" },
+            "valid": { "type": "boolean" },
+            "signature_details": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "commit_author": {
+          "type": "object",
+          "required": ["name", "email"],
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "policy_decision": {
+          "type": "object",
+          "required": ["decision", "rationale"],
+          "properties": {
+            "decision": { "type": "string", "enum": ["allow", "deny"] },
+            "rationale": { "type": "string", "description": "Concise explanation of why the policy decision was made; must reference specific evidence fields." }
+          },
+          "additionalProperties": false
+        },
+        "allowlist_source": { "type": "string", "description": "URI or repo path of the governed allowlist artifact used." },
+        "allowlist_version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "fingerprint": {
+      "type": ["object", "null"],
+      "description": "Fingerprint object, null when retrieval fails.",
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["sha256"] },
+        "value": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "canonicalization": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string", "enum": ["RFC8785-JCS"] },
+            "version": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["algorithm", "value", "canonicalization"],
+      "additionalProperties": false
+    },
+    "previous_accepted_snapshot": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "projection_status": {
+      "type": "string",
+      "enum": ["none"],
+      "description": "HUB-INGEST outputs only 'none'. Projection lifecycle records live under HUB-EVT-001."
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["snapshot_artifact_url"],
+      "properties": {
+        "snapshot_artifact_url": { "type": "string" },
+        "ci_artifact_url": { "type": ["string", "null"] },
+        "test_results_url": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "payload_manifest_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Ordered array of normalized paths from the ingest manifest that were included in the canonical_payload."
+    },
+    "note": { "type": ["string", "null"] },
+    "signer_metadata": {
+      "type": ["object", "null"],
+      "properties": {
+        "signer": { "type": "string" },
+        "signature": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "retrieval_status": { "const": "success" } } },
+      "then": {
+        "required": ["fingerprint", "snapshot_id"],
+        "properties": { "retrieval_error": { "type": "null" } }
+      }
+    },
+    {
+      "if": { "properties": { "retrieval_status": { "const": "failure" } } },
+      "then": {
+        "required": ["retrieval_error"],
+        "properties": {
+          "fingerprint": { "type": ["null"] },
+          "snapshot_id": { "type": ["null"] },
+          "validation_status": { "const": "not_run" }
+        }
+      }
+    }
+  ]
+}
